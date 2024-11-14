@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"net/http"
 	"net/netip"
 	"strings"
 	"text/tabwriter"
@@ -115,6 +116,42 @@ func (d *GobusterDNS) ProcessWord(ctx context.Context, word string, progress *li
 		// add a . to indicate this is the full domain and we do not want to traverse the search domains on the system
 		subdomain = fmt.Sprintf("%s.", subdomain)
 	}
+
+    // Check if the -e (ResolveToIP) option is set
+    if d.options.ResolveToIP != "" {
+		// Use ResolveToIP if -e is specified
+		client := &http.Client{Timeout: d.options.Timeout}
+		url := fmt.Sprintf("http://%s", d.options.ResolveToIP)
+		req, _ := http.NewRequest("GET", url, nil)
+		req.Host = subdomain // Set Host header for subdomain
+	
+		// Execute the HTTP request and check if subdomain is reachable
+		resp, err := client.Do(req)
+		if err != nil {
+			return nil // Skip if unreachable
+		}
+		defer resp.Body.Close()
+	
+		// Check if response meets reachability criteria (e.g., content length > 100)
+		buf := new(bytes.Buffer)
+		buf.ReadFrom(resp.Body)
+		if buf.Len() > 100 {
+			result := Result{
+				Subdomain: subdomain,
+				Found:     true,
+				ShowIPs:   d.options.ShowIPs,
+				ShowCNAME: d.options.ShowCNAME,
+				NoFQDN:    d.options.NoFQDN,
+			}
+			if d.options.ShowIPs {
+				result.IPs = []netip.Addr{netip.MustParseAddr(d.options.ResolveToIP)}
+			}
+			progress.ResultChan <- result
+		}
+		return nil
+	}
+
+    // use dnsLookup if -e is not specified
 	ips, err := d.dnsLookup(ctx, subdomain)
 	if err == nil {
 		if !d.isWildcard || !d.wildcardIps.ContainsAny(ips) {

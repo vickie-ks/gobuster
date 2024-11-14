@@ -76,6 +76,11 @@ func parseDNSOptions() (*libgobuster.Options, *gobusterdns.OptionsDNS, error) {
 		return nil, nil, fmt.Errorf("invalid value for resolver: %w", err)
 	}
 
+	pluginOpts.ResolveToIP, err = cmdDNS.Flags().GetString("resolve-to-ip")
+	if err != nil {
+		return nil, nil, fmt.Errorf("invalid value for resolve-to-ip: %w", err)
+	}
+
 	pluginOpts.NoFQDN, err = cmdDNS.Flags().GetBool("no-fqdn")
 	if err != nil {
 		return nil, nil, fmt.Errorf("invalid value for no-fqdn: %w", err)
@@ -103,6 +108,7 @@ func init() {
 	cmdDNS.Flags().BoolP("wildcard", "", false, "Force continued operation when wildcard found")
 	cmdDNS.Flags().BoolP("no-fqdn", "", false, "Do not automatically add a trailing dot to the domain, so the resolver uses the DNS search domain")
 	cmdDNS.Flags().StringP("resolver", "r", "", "Use custom DNS server (format server.com or server.com:port)")
+	cmdDNS.Flags().StringP("resolve-to-ip", "e", "", "Directly resolve all subdomains to a specified IP address")
 	if err := cmdDNS.MarkFlagRequired("domain"); err != nil {
 		log.Fatalf("error on marking flag as required: %v", err)
 	}

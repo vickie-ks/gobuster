@@ -13,6 +13,7 @@ type OptionsDNS struct {
 	Resolver       string
 	NoFQDN         bool
 	Timeout        time.Duration
+	ResolveToIP    string
 }
 
 // NewOptionsDNS returns a new initialized OptionsDNS
